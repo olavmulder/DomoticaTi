@@ -112,7 +112,7 @@ void actuator(char* method, const char** argv, int argc) {
         const char* actuatorid = argv[2];
         if(atoi(actuatorid) != 0 && strlen(actuatorid) > 0) {
           char* query;
-          sprintf(query, "DELETE FROM actuator WHERE id=%s", actuatorid);
+          sprintf(query, "DELETE FROM actuator WHERE actuatorid=%s", actuatorid);
           executeQuery(query);
         }
       } else {

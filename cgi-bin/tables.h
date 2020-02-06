@@ -5,6 +5,16 @@ const char ACTUATOR_FIELD_NAMES[][30] = {"actuatorid", "arduinoid", "value", "ty
 #define ACTUATOR_FIELD_ARDUINOVALUEID_SIZE 5
 #define ACTUATOR_FIELD_ACTUATORNAME_SIZE 100
 
+#define INIT_ACTUATOR_TABLE = "CREATE TABLE actuator \
+(actuatorid int unsigned not null auto_increment, \
+arduinoid int unsigned not null, \
+value int, \
+type varchar(30), \
+arduinovalueid varchar(5) not null, \
+actuatorname varchar(100) not null, \
+PRIMARY KEY (actuatorid), \
+FOREIGN KEY (arduinoid) REFERENCES arduino(arduinoid));"
+
 struct actuator
 {
   int actuatorid;
