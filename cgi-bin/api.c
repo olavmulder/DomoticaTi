@@ -8,8 +8,8 @@ void finish_with_error(MYSQL*);
 void errorResponse(int, char*);
 void getMethod(char[], char**);
 int getContentSize(char**);
-void actuator(char*, const char**);
-void insertDatabase(char*);
+void actuator(char*, const char**, int);
+void executeQuery(char*);
 int validateActuator(struct actuator);
 void createInsertQueryActuator(char*, struct actuator);
 struct actuator postActuator();
@@ -31,7 +31,7 @@ int main(int argc, const char* argv[], char* env[]) {
     memcpy(REQUEST_REDIRECT, argv[1], 99);
 
     if(strncmp(REQUEST_REDIRECT, "actuator", 8) == 0){
-      actuator(METHOD, argv);
+      actuator(METHOD, argv, argc);
     } else {
       errorResponse(404, "Didn't found requested url");
     }
@@ -84,7 +84,7 @@ int getContentSize(char **env) {
   return 0;
 }
 
-void actuator(char* method, const char** argv) {
+void actuator(char* method, const char** argv, int argc) {
   char* jsonObject = malloc(8000);
 
   if(memcmp(argv[1]+8, "/", 1) == 0) {
@@ -102,18 +102,29 @@ void actuator(char* method, const char** argv) {
       if(validateActuator(actuator) > 0) {
         char* query = malloc(200);
         createInsertQueryActuator(query, actuator);
-        insertDatabase(query);
+        executeQuery(query);
       } else {
         errorResponse(400, "validation failed.");
       }
 
+    } else if(strcmp(method, "DELETE") == 0) {
+      if(argc > 2) {
+        const char* actuatorid = argv[2];
+        if(atoi(actuatorid) != 0 && strlen(actuatorid) > 0) {
+          char* query;
+          sprintf(query, "DELETE FROM actuator WHERE id=%s", actuatorid);
+          executeQuery(query);
+        }
+      } else {
+        errorResponse(400, "Not enough parameters");
+      }
     } else {
-      errorResponse(400, "can't do that");
+      errorResponse(400, "check request url");
     }
   }
 }
 
-void insertDatabase(char* query) {
+void executeQuery(char* query) {
   MYSQL *con = mysql_init(NULL);
 
   if (con == NULL) {
@@ -127,11 +138,10 @@ void insertDatabase(char* query) {
   if (mysql_query(con, query)) {  
       finish_with_error(con);
   }
-
   
   mysql_close(con);
   printf("Content-Type: application/json\n\n");
-  printf("{\"created\": true}");
+  printf("{\"done\": true}");
 }
 
 int validateActuator(struct actuator actuator) {
