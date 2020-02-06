@@ -86,7 +86,6 @@ int getContentSize(char **env) {
 
 void actuator(char* method, const char** argv) {
   char* jsonObject = malloc(8000);
-  int i = 0, jsonCount = 0, index = 0;
 
   if(memcmp(argv[1]+8, "/", 1) == 0) {
     //Further redirect
@@ -131,7 +130,8 @@ void insertDatabase(char* query) {
 
   
   mysql_close(con);
-  errorResponse(200, "actuator created");
+  printf("Content-Type: application/json\n\n");
+  printf("{\"created\": true}");
 }
 
 int validateActuator(struct actuator actuator) {
