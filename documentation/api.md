@@ -1,5 +1,7 @@
 ## api documentation
 
+### RESPONSE is ALWAYS excluded from errors. 
+
 # actuator
   # get
     url: /cgi-bin/api.cgi?actuator
