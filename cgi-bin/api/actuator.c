@@ -8,37 +8,63 @@ void finish_with_error(MYSQL*);
 void errorResponse(int, char*);
 void getMethod(char[], char**);
 int getContentSize(char**);
-void actuator(char*, const char**, int);
 void executeQuery(char*);
 int validateActuator(struct actuator);
 void createInsertQueryActuator(char*, struct actuator);
 struct actuator postActuator();
-int selectQueryJSON(char*, char*);
+int selectQueryJSON(char*);
 
 int CONTENT_SIZE = 0;
 
 int main(int argc, const char* argv[], char* env[]) {
-  int i = 0;
+
 
   char METHOD[10];
-  char REQUEST_REDIRECT[100];
   CONTENT_SIZE = getContentSize(env);
 
   /*Get Method from request*/
   getMethod(METHOD, env);
 
-  if(argc > 1) {
-    memcpy(REQUEST_REDIRECT, argv[1], 99);
+  if(argc == 1) {
 
-    if(strncmp(REQUEST_REDIRECT, "actuator", 8) == 0){
-      actuator(METHOD, argv, argc);
+    if(strcmp(METHOD, "GET") == 0) {
+        selectQueryJSON("SELECT * FROM actuator");
+
+    } else if(strcmp(METHOD, "POST") == 0) {
+      struct actuator actuator;
+      actuator = postActuator();
+
+      if(validateActuator(actuator) > 0) {
+        char* query = malloc(200);
+        createInsertQueryActuator(query, actuator);
+        executeQuery(query);
+      } else {
+        errorResponse(400, "validation failed.");
+      }
+
     } else {
-      errorResponse(404, "Didn't found requested url");
+      errorResponse(400, "check request url");
     }
+  } else if(argc == 2) { // one data
+    if(strcmp(METHOD, "DELETE") == 0) {
 
+      const char* actuatorid = argv[1];
 
+      if(atoi(actuatorid) != 0 && strlen(actuatorid) > 0) {
+        char* query = malloc(100);
+        sprintf(query, "DELETE FROM actuator WHERE actuatorid=%d", atoi(actuatorid));
+        executeQuery(query);
+
+      } else {
+        errorResponse(400, "validation vailed");
+      }
+    } else {
+      errorResponse(400, "check request url");
+    }
+  } else if(argc > 2) { // one redirect + 1 data
+    
   } else {
-    errorResponse(400, "Bad Request didn't recieve any parameters.");
+    errorResponse(404, "URL Not found. Please check all parameters");
   }
 
   return 0;
@@ -85,43 +111,7 @@ int getContentSize(char **env) {
 }
 
 void actuator(char* method, const char** argv, int argc) {
-  char* jsonObject = malloc(8000);
-
-  if(memcmp(argv[1]+8, "/", 1) == 0) {
-    //Further redirect
-  } else {
-    if(strcmp(method, "GET") == 0) {
-        selectQueryJSON(jsonObject, "SELECT * FROM actuator");
-        printf("Content-Type: application/json\n\n");
-        printf("%s", jsonObject);
-
-    } else if(strcmp(method, "POST") == 0) {
-      struct actuator actuator;
-      actuator = postActuator();
-
-      if(validateActuator(actuator) > 0) {
-        char* query = malloc(200);
-        createInsertQueryActuator(query, actuator);
-        executeQuery(query);
-      } else {
-        errorResponse(400, "validation failed.");
-      }
-
-    } else if(strcmp(method, "DELETE") == 0) {
-      if(argc > 2) {
-        const char* actuatorid = argv[2];
-        if(atoi(actuatorid) != 0 && strlen(actuatorid) > 0) {
-          char* query;
-          sprintf(query, "DELETE FROM actuator WHERE actuatorid=%s", actuatorid);
-          executeQuery(query);
-        }
-      } else {
-        errorResponse(400, "Not enough parameters");
-      }
-    } else {
-      errorResponse(400, "check request url");
-    }
-  }
+  
 }
 
 void executeQuery(char* query) {
@@ -247,21 +237,24 @@ struct actuator postActuator() {
   return newActuator;
 }
 
-int selectQueryJSON(char* jsonObject, char* query) {
+int selectQueryJSON(char* query) {
+
+  int fieldCounter = 0, i = 0;
+  printf("Content-Type: application/json\n\n");
   MYSQL *con = mysql_init(NULL);
 
   if (con == NULL) {
       errorResponse(500, "mysql_init() failed");
   }  
-  
+
   if (mysql_real_connect(con, "localhost", "domoticati", "domoticati", "domoticati", 0, NULL, 0) == NULL) {
       finish_with_error(con);
   }    
-  
+
   if (mysql_query(con, query)) {  
       finish_with_error(con);
   }
-  
+
   MYSQL_RES *result = mysql_store_result(con);
 
   if (result == NULL) {
@@ -269,38 +262,40 @@ int selectQueryJSON(char* jsonObject, char* query) {
   }  
 
   int num_fields = mysql_num_fields(result);
-  char fields[num_fields][50];
+  char fields[num_fields][51];
 
   MYSQL_ROW row;
   MYSQL_FIELD *field;
 
-  int fieldCounter = 0;
   while(field = mysql_fetch_field(result)) {
     strncpy(fields[fieldCounter], field->name, 50);
     fieldCounter++;
   }
-  
-  strcpy(jsonObject, "{\"data\": [ ");
+
+  printf("{\"data\": [ ");
   while (row = mysql_fetch_row(result)) { 
-    strcat(jsonObject, "{");
+    if(i > 0) {
+      printf(",");
+    }
+    printf("{");
 
       for(int i = 0; i < num_fields; i++) { 
-          strcat(jsonObject, "\"");
-          strcat(jsonObject, fields[i]);
-          strcat(jsonObject, "\": \"");
-          strcat(jsonObject, row[i] ? row[i] : "NULL");
-          strcat(jsonObject, "\"");
-          strcat(jsonObject, ((i+1) != num_fields) ? "," : "");
+          printf("\"");
+          printf("%s", fields[i]);
+          printf("\": \"");
+          printf("%s", row[i] ? row[i] : "NULL");
+          printf("\"");
+          printf("%s", ((i+1) != num_fields) ? "," : "");
       }
 
-    strcat(jsonObject, "},");
+    printf("}");
+    i++;
   }
 
-  jsonObject[strlen(jsonObject)-1] = ' ';
-  strcat(jsonObject, "]}\0");
+  printf("]}");
   
   mysql_free_result(result);
   mysql_close(con);
 
-  return strlen(jsonObject) - strlen("{\"data\": [ ]}\0");
+  return i;
 }
