@@ -1,18 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <mariadb/mysql.h>
 #include "tables.h"
+#include "../library/domoticaTi.h"
+#include <mariadb/mysql.h>
 
-void finish_with_error(MYSQL*);
-void errorResponse(int, char*);
-void getMethod(char[], char**);
-int getContentSize(char**);
-void executeQuery(char*);
+
 int validateActuator(struct actuator);
 void createInsertQueryActuator(char*, struct actuator);
 struct actuator postActuator();
-int selectQueryJSON(char*);
 
 int CONTENT_SIZE = 0;
 
@@ -68,70 +61,6 @@ int main(int argc, const char* argv[], char* env[]) {
   }
 
   return 0;
-}
-
-void finish_with_error(MYSQL *con) {
-  char error[150];
-  strncpy(error, mysql_error(con), 150);
-  errorResponse(500, error);
-  mysql_close(con);
-  exit(1);        
-}
-
-void errorResponse(int statusCode, char* message) {
-  printf("STATUS: %d\n", statusCode);
-  printf("Content-Type: application/json\n\n");
-  printf("{\"errorMessage\": \"%s\"}", message);
-  exit(0);
-}
-
-void getMethod(char method[], char **env) {
-  int index = 0;
-  while(env[index] != NULL) {
-    if(strncmp(env[index], "REQUEST_METHOD=", 15) == 0) {
-      memcpy(method, env[index]+15, 9);
-    }
-    index++;
-  }
-}
-
-int getContentSize(char **env) {
-  int index = 0;
-  while(env[index] != NULL) {
-    if(strncmp(env[index], "CONTENT_LENGTH=", 15) == 0){
-      if(strlen(env[index]) > 15) {
-        return atoi(env[index]+15);
-      } else {
-        return 0;
-      }
-    }
-    index++;
-  }
-  return 0;
-}
-
-void actuator(char* method, const char** argv, int argc) {
-  
-}
-
-void executeQuery(char* query) {
-  MYSQL *con = mysql_init(NULL);
-
-  if (con == NULL) {
-      errorResponse(500, "mysql_init() failed");
-  }  
-  
-  if (mysql_real_connect(con, "localhost", "domoticati", "domoticati", "domoticati", 0, NULL, 0) == NULL) {
-      finish_with_error(con);
-  }    
-  
-  if (mysql_query(con, query)) {  
-      finish_with_error(con);
-  }
-  
-  mysql_close(con);
-  printf("Content-Type: application/json\n\n");
-  printf("{\"done\": true}");
 }
 
 int validateActuator(struct actuator actuator) {
@@ -235,67 +164,4 @@ struct actuator postActuator() {
   }
 
   return newActuator;
-}
-
-int selectQueryJSON(char* query) {
-
-  int fieldCounter = 0, i = 0;
-  printf("Content-Type: application/json\n\n");
-  MYSQL *con = mysql_init(NULL);
-
-  if (con == NULL) {
-      errorResponse(500, "mysql_init() failed");
-  }  
-
-  if (mysql_real_connect(con, "localhost", "domoticati", "domoticati", "domoticati", 0, NULL, 0) == NULL) {
-      finish_with_error(con);
-  }    
-
-  if (mysql_query(con, query)) {  
-      finish_with_error(con);
-  }
-
-  MYSQL_RES *result = mysql_store_result(con);
-
-  if (result == NULL) {
-      finish_with_error(con);
-  }  
-
-  int num_fields = mysql_num_fields(result);
-  char fields[num_fields][51];
-
-  MYSQL_ROW row;
-  MYSQL_FIELD *field;
-
-  while(field = mysql_fetch_field(result)) {
-    strncpy(fields[fieldCounter], field->name, 50);
-    fieldCounter++;
-  }
-
-  printf("{\"data\": [ ");
-  while (row = mysql_fetch_row(result)) { 
-    if(i > 0) {
-      printf(",");
-    }
-    printf("{");
-
-      for(int i = 0; i < num_fields; i++) { 
-          printf("\"");
-          printf("%s", fields[i]);
-          printf("\": \"");
-          printf("%s", row[i] ? row[i] : "NULL");
-          printf("\"");
-          printf("%s", ((i+1) != num_fields) ? "," : "");
-      }
-
-    printf("}");
-    i++;
-  }
-
-  printf("]}");
-  
-  mysql_free_result(result);
-  mysql_close(con);
-
-  return i;
 }

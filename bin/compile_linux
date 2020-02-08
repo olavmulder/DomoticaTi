@@ -1,0 +1,18 @@
+#!/bin/bash
+echo Going to library dir
+cd ../cgi-bin/library
+
+echo compile all .c to  all .o
+gcc -c *.c $(mariadb_config --libs)
+
+echo combining all .o to one .a
+ar -rc libdomoticati.a *.o
+
+echo Do something with a
+ranlib libdomoticati.a
+
+echo move to api dir
+cd ../api
+
+echo compile actuator
+gcc actuator.c -o actuator.cgi -L../library -ldomoticati $(mariadb_config --libs)
