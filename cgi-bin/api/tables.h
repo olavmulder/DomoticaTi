@@ -6,7 +6,7 @@ const char ACTUATOR_FIELD_NAMES[][30] = {"actuatorid", "arduinoid", "value", "ty
 #define ACTUATOR_FIELD_ACTUATORNAME_SIZE 100
 
 #define INIT_ACTUATOR_TABLE = "CREATE TABLE actuator \
-(actuatorid int unsigned not null auto_increment, \
+(actuatorid int unsigned NOT NULL auto_increment, \
 arduinoid int unsigned not null, \
 value int, \
 type varchar(30), \

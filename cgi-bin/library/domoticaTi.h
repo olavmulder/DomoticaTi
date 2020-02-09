@@ -33,3 +33,9 @@ void executeQuery(char*);
 
 void getMethod(char[], char**);
 int getContentSize(char**);
+
+/**
+ * validation
+*/
+
+void removeBadCharacters(char*);

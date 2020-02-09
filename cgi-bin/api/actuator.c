@@ -64,11 +64,13 @@ int main(int argc, const char* argv[], char* env[]) {
 }
 
 int validateActuator(struct actuator actuator) {
-
-  if(actuator.actuatorid != -1) { //user is not allowed to create own id.
-    return -1;
+  short validation = 1, index = 0;
+  char response[ACTUATOR_FIELDS][2][50];
+  for(index = 0; index < ACTUATOR_FIELDS; index++) {
+    strncpy(response[index][0], ACTUATOR_FIELD_NAMES[index], 50);
+    strncpy(response[index][1], "true", 50);
   }
-
+  
   if(actuator.arduinoid > 0) { //uncomment following piece when arduino table is active.
     /*char* query = malloc(100);
     char* response = malloc(2000);
@@ -77,21 +79,34 @@ int validateActuator(struct actuator actuator) {
       return -1;
     }*/
   } else {
-    return -1;
+    strncpy(response[1][1], "false", 50);
+    validation--;
   }
 
   actuator.value = 0; //No matter what the user sends, the first value is always 0
 
   if(strlen(actuator.type) == 0) {
-    return -1;
+    strncpy(response[3][1], "false", 50);
+    validation--;
   }
 
   if(strlen(actuator.arduinovalueid) != 3) {
-    return -1;
+    strncpy(response[4][1], "false", 50);
+    validation--;
   }
 
   if(strlen(actuator.actuatorname) == 0) {
-    return -1;
+    strncpy(response[5][1], "false", 50);
+    validation--;
+  }
+
+  if(validation < 1) {
+    printf("STATUS: 400 \ncontent-type: application/json\n\n{");
+    for (index = 1; index < ACTUATOR_FIELDS; index++) {
+      printf("\"%s\":%s%c", response[index][0], response[index][1], index+1 < ACTUATOR_FIELDS ? ',' : ' ');
+    }
+    printf("}");
+    exit(0);
   }
 
   return 1;
@@ -123,7 +138,7 @@ struct actuator postActuator() {
     char* dataPointer = strstr(data, ACTUATOR_FIELD_NAMES[index]);
     if(dataPointer != NULL) {
 
-      dataPointer = dataPointer + 4 + strlen(ACTUATOR_FIELD_NAMES[index]); //+4 for: ": "
+      dataPointer = dataPointer + 3 + strlen(ACTUATOR_FIELD_NAMES[index]); //+3 for: ": "
       char* dataPointerEnd = strchr(dataPointer, '"');
 
       int dataSize = dataPointerEnd - dataPointer;
@@ -131,12 +146,9 @@ struct actuator postActuator() {
       char* retrievedData = malloc(dataSize+1);
       strncpy(retrievedData, dataPointer, dataSize);
       retrievedData[dataSize] = '\0';
+      removeBadCharacters(retrievedData);
 
-      switch (index) {
-      case 0:        
-        newActuator.actuatorid = atoi(retrievedData);
-        break;
-      
+      switch (index) { // starts with 1 because user can't make there own id.
       case 1:
         newActuator.arduinoid = atoi(retrievedData);
         break;
