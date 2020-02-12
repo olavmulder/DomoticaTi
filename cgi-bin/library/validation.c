@@ -81,8 +81,8 @@ void removeBadCharacters(char* data) {
         break;
       }
     }
-    
   }
+  
   *out++ = '\0';
   strcpy(data, res);
 }

@@ -5,7 +5,7 @@
 
 int validateActuator(struct actuator);
 void createInsertQueryActuator(char*, struct actuator);
-struct actuator postActuator();
+struct actuator readActuatorJSON();
 
 int CONTENT_SIZE = 0;
 
@@ -21,11 +21,11 @@ int main(int argc, const char* argv[], char* env[]) {
   if(argc == 1) {
 
     if(strcmp(METHOD, "GET") == 0) {
-        selectQueryJSON("SELECT * FROM actuator");
+      selectQueryJSON("SELECT * FROM actuator");
 
     } else if(strcmp(METHOD, "POST") == 0) {
       struct actuator actuator;
-      actuator = postActuator();
+      actuator = readActuatorJSON();
 
       if(validateActuator(actuator) > 0) {
         char* query = malloc(200);
@@ -51,11 +51,15 @@ int main(int argc, const char* argv[], char* env[]) {
       } else {
         errorResponse(400, "validation vailed");
       }
+    } else if(strcmp(METHOD, "PUT") == 0) {
+      struct actuator actuator = readActuatorJSON();
+      errorResponse(501, "This function will be implementend soon!");
+      // TODO MAKE THE UPDATE
     } else {
       errorResponse(400, "check request url");
     }
   } else if(argc > 2) { // one redirect + 1 data
-    
+    errorResponse(404, "url Not Found. Please check all parameters");
   } else {
     errorResponse(404, "URL Not found. Please check all parameters");
   }
@@ -127,7 +131,7 @@ void createInsertQueryActuator(char* query, struct actuator actuator) {
   strcat(query, "')");
 }
 
-struct actuator postActuator() {
+struct actuator readActuatorJSON() {
   struct actuator newActuator = {-1,-1,-1,"","",""}; //define all elements so we can validate the struct
   
   char* data = malloc(CONTENT_SIZE+10);
