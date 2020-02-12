@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>Domotica Ti</title>
+    <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-3.4.1.min.js"></script>
+    <script src="https://kit.fontawesome.com/702d5f438a.js" crossorigin="anonymous"></script>
+    <script src='https://cdn.jsdelivr.net/g/lodash@4(lodash.min.js+lodash.fp.min.js)'></script>
+  </head>
+
+  <style type="text/css">
+    .form-style-1 {
+      margin:10px auto;
+      max-width: 400px;
+      padding: 20px 12px 10px 20px;
+      font: 13px "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+    }
+    .form-style-1 li {
+      padding: 0;
+      display: block;
+      list-style: none;
+      margin: 10px 0 0 0;
+    }
+    .form-style-1 label{
+      margin:0 0 3px 0;
+      padding:0px;
+      display:block;
+      font-weight: bold;
+    }
+    .form-style-1 input[type=text], 
+    .form-style-1 input[type=date],
+    .form-style-1 input[type=datetime],
+    .form-style-1 input[type=number],
+    .form-style-1 input[type=search],
+    .form-style-1 input[type=time],
+    .form-style-1 input[type=url],
+    .form-style-1 input[type=email],
+    textarea, 
+    select{
+      box-sizing: border-box;
+      -webkit-box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      border:1px solid #BEBEBE;
+      padding: 7px;
+      margin:0px;
+      -webkit-transition: all 0.30s ease-in-out;
+      -moz-transition: all 0.30s ease-in-out;
+      -ms-transition: all 0.30s ease-in-out;
+      -o-transition: all 0.30s ease-in-out;
+      outline: none;	
+    }
+    .form-style-1 input[type=text]:focus, 
+    .form-style-1 input[type=date]:focus,
+    .form-style-1 input[type=datetime]:focus,
+    .form-style-1 input[type=number]:focus,
+    .form-style-1 input[type=search]:focus,
+    .form-style-1 input[type=time]:focus,
+    .form-style-1 input[type=url]:focus,
+    .form-style-1 input[type=email]:focus,
+    .form-style-1 textarea:focus, 
+    .form-style-1 select:focus{
+      -moz-box-shadow: 0 0 8px #88D5E9;
+      -webkit-box-shadow: 0 0 8px #88D5E9;
+      box-shadow: 0 0 8px #88D5E9;
+      border: 1px solid #88D5E9;
+    }
+    .form-style-1 .field-divided{
+      width: 49%;
+    }
+    
+    .form-style-1 .field-long{
+      width: 100%;
+    }
+    .form-style-1 .field-select{
+      width: 100%;
+    }
+    .form-style-1 .field-textarea{
+      height: 100px;
+    }
+    .form-style-1 input[type=submit], .form-style-1 input[type=button]{
+      background: #4B99AD;
+      padding: 8px 15px 8px 15px;
+      border: none;
+      color: #fff;
+    }
+    .form-style-1 input[type=submit]:hover, .form-style-1 input[type=button]:hover{
+      background: #4691A4;
+      box-shadow:none;
+      -moz-box-shadow:none;
+      -webkit-box-shadow:none;
+    }
+    .form-style-1 .required{
+      color:red;
+    }
+
+    table {
+      font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    table td, table th {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+
+    table tr:nth-child(even){background-color: #f2f2f2;}
+
+    table tr:hover {background-color: #ddd;}
+
+    table th {
+      padding-top: 12px;
+      padding-bottom: 12px;
+      text-align: left;
+      background-color: #4CAF50;
+      color: white;
+    }
+
+    .delete {
+      padding: 0.75em;
+      background-color: #F56C6C;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 5px;
+    }
+
+    .delete:hover {
+      opacity: 0.8;
+    }
+
+    .failed {
+      border-color: #F56C6C !important;
+    }
+
+    #failtext {
+      color: #F56C6C;
+      font-weight: bold;
+    }
+    </style>
+
+
+
+  <body>
+    <script>
+      function makeJSONobjectForm(formData) {
+        const jsonObject = {};
+        $.map(formData, (n) => {
+          jsonObject[n['name']] = n['value']
+        })
+
+        return JSON.stringify(jsonObject)
+      }
+
+      $(function (){
+        $( "#test" ).submit(function( event ) {   
+          let jqxhr = $.ajax({
+            method: "POST",
+            url: "/cgi-bin/api/actuator.cgi", 
+            data: makeJSONobjectForm($('#test').serializeArray())
+          })
+            .done(() => {
+              $("input").removeClass('failed')
+              $('failtext').html('')
+              test()
+            })
+            .fail((error) => {
+              const fields = Object.keys(error.responseJSON)
+              fields.forEach(field => {
+                console.log(error.responseJSON[field])
+                if(error.responseJSON[field] == false) {
+                  $("#"+field).addClass("failed")
+                  $("#failtext").html('<i class="fas fa-exclamation-circle"></i> Please check all your fields you stupid idiot!')
+                }
+              })
+              console.error(error.responseJSON)
+            })
+          event.preventDefault();
+        });
+      });
+
+      function test() {
+        let jqxhr = $.ajax({
+          method: "GET",
+          url: "/cgi-bin/api/actuator.cgi"
+        })
+          .done((result) => {
+            let table = document.createElement("table")
+            let row = table.insertRow()
+
+            const tableHeaders = Object.keys(result.data[0])
+            tableHeaders.push('Actions')
+            tableHeaders.forEach(header => {
+              let headerCell = document.createElement('th')
+              headerCell.innerHTML = header
+              row.appendChild(headerCell)
+            })
+            row = table.insertRow()
+            
+            result.data.forEach(actuator => {
+              actuator['Actions'] = '<button class="delete" onclick="deleteActuator('+ actuator.actuatorid +')"><i class="fas fa-trash-alt"></i> Delete</button>'
+              tableHeaders.forEach(header => {
+                row.insertCell().innerHTML = actuator[header]
+              })
+              row = table.insertRow()
+            })
+            $('#tableContainer').html(table)
+          })
+      }
+
+      function deleteActuator(id) {
+        let jqxhr = $.ajax({
+          method: "DELETE",
+          url: "/cgi-bin/api/actuator.cgi?"+id
+        })
+          .done(() => {
+            test()
+          })
+      }
+    </script>
+    <form id="test" enctype="application/json">
+      <ul class="form-style-1">
+        <li>
+          <label>Actuator Name <span class="required">*</span></label>
+          <input type="text" id="actuatorname" name="actuatorname" class="field-long" placeholder="Lights bathroom" /> 
+        </li>
+        <li>
+          <label>Type <span class="required">*</span></label>
+          <input type="text" id="type" name="type" class="field-long" placeholder="Lights" /> 
+        </li>
+        <li>
+            <label>Arduino ID <span class="required">*</span></label>
+            <input type="number" id="arduinoid" name="arduinoid" class="field-long" placeholder="23"/>
+        </li>
+        <li>
+          <label>Arduino Value ID <span class="required">*</span></label>
+          <input type="text" id="arduinovalueid" name="arduinovalueid" class="field-long" placeholder="LI1" /> 
+        </li>
+        <li id="failtext">
+        </li>
+        <li>
+            <input type="submit" value="Submit" />
+        </li>
+      </ul>
+    </form>
+    <button onclick="test()">Hallo</button>
+    <div id="tableContainer"></div>  
+    <div id="tableContainer2"></div>  
+  </body>
+</html>
